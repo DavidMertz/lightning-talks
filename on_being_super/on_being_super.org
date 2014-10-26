@@ -1,0 +1,94 @@
+#+STARTUP: showall
+#+REVEAL_THEME: blood
+#+REVEAL_TITLE_SLIDE_TEMPLATE: <h2>On being <code>super()</code></h2><p><p>Austin Bingham<p><p>Sixty North AS<p>
+#+REVEAL_EXTRA_CSS: ./reveal.js/css/theme/sixty_north_mixin.css
+#+OPTIONS: num:nil, toc:nil
+
+* Do you use super()?
+file:images/superman.png
+
+* Do you know how super() works?
+file:images/superman.png
+
+* Do you know about super-proxies, method resolution order, and C3?
+
+* super() is interesting and useful
+
+* MRO: An ordering of an inheritance graph
+
+#+BEGIN_SRC python
+In [1]: class A: pass
+
+In [2]: class B(A): pass
+
+In [3]: class C(A): pass
+
+In [4]: class D(B, C): pass
+
+In [5]: D.mro()
+Out[5]: [__main__.D, __main__.B, __main__.C, __main__.A, object]
+#+END_SRC
+
+* MRO: The order Python uses to find method implementations
+
+* C3: The algorithm for calculating MRO
+
+ 1. Derived classes come before base classes
+ 2. Base class definition order is preserved
+ 3. 1 and 2 are preserved at all points in the graph
+
+* C3: Some inheritance graphs are illegal!
+
+#+BEGIN_SRC python
+In [1]: class A: pass
+
+In [2]: class B(A): pass
+
+In [3]: class C(A): pass
+
+In [4]: class D(B, A, C): pass
+---------------------------------------------------------------------------
+TypeError                                 Traceback (most recent call last)
+<ipython-input-4-4bf732fadaa7> in <module>()
+----> 1 class D(B, A, C): pass
+
+TypeError: Cannot create a consistent method resolution
+order (MRO) for bases A, C
+#+END_SRC
+
+* Finally, super()
+
+Given a method resolution order and a class C in that MRO, super()
+gives you an object which resolves methods using only the part of the
+MRO which comes *after* C.
+
+file:images/super_image.png
+
+* super-proxies: the super() workhorses
+file:images/workhorse.jpg
+
+* super-proxies: Just regular old objects
+
+#+BEGIN_SRC python
+In [28]: s = super(B, D())
+
+In [29]: type(s)
+Out[29]: super
+
+In [30]: s.__thisclass__
+Out[30]: __main__.B
+#+END_SRC
+
+* In summary...
+
+ 1. Python calculates an MRO for all classes
+ 2. C3 is the algorithm for determining the MRO
+ 3. super() requires an MRO and a starting point in the MRO
+ 4. super-proxies find the first class in the remaining MRO which supports the requested method
+
+* 
+
+    :PROPERTIES:
+    :reveal_background: ./images/closer.png
+    :reveal_background_trans: slide
+    :END:
