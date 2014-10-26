@@ -1,0 +1,261 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>python_transducers</title>
+<meta name="author" content="(Sixty North)"/>
+<link rel="stylesheet" href="./reveal.js/css/reveal.min.css"/>
+<link rel="stylesheet" href="./reveal.js/css/theme/blood.css" id="theme"/>
+<link rel="stylesheet" href="./reveal.js/css/theme/sixty_north_mixin.css"/>
+<!-- If the query includes 'print-pdf', include the PDF print sheet -->
+<script>
+    if( window.location.search.match( /print-pdf/gi ) ) {
+        var link = document.createElement( 'link' );
+        link.rel = 'stylesheet';
+        link.type = 'text/css';
+        link.href = './reveal.js/css/print/pdf.css';
+        document.getElementsByTagName( 'head' )[0].appendChild( link );
+    }
+</script>
+</head>
+<body>
+<div class="reveal">
+<div class="slides">
+<section>
+<h2>Transducers for Python</h2><p><p>Austin Bingham<p><p>Sixty North AS<p></section>
+
+<section>
+<section id="sec-1" >
+
+<h2>What is a transducer?</h2>
+<img src="images/rich-hickey.jpg" alt="rich-hickey.jpg" />
+</section>
+</section>
+<section>
+<section id="sec-2" >
+
+<h2>What is a transducer?</h2>
+<p>
+"Transducers are <b>composable algorithmic transformations</b>. They are
+independent from the context of their input and output sources and
+<b>specify only the essence of the transformation</b> in terms of an
+individual element&#x2026; <b>Transducers compose directly</b>, without awareness
+of input or creation of intermediate aggregates."
+</p>
+
+<p>
+&#x2013; Clojure documentation
+</p>
+</section>
+</section>
+<section>
+<section id="sec-3" >
+
+<h2>What is a transducer?</h2>
+<p>
+<b>TRANSforming reDUCER</b>
+</p>
+
+<ul class="org-ul">
+<li>A composable transformation step that can be used to produce a
+reducing function from another reducing function.
+</li>
+
+<li>Decouples the <b>context</b> of a transformation from the transformation
+itself.
+</li>
+</ul>
+</section>
+</section>
+<section>
+<section id="sec-4" >
+
+<h2>Consider Python's map() and filter()</h2>
+<ul class="org-ul">
+<li>Each takes an element from a sequence, does something, and
+(possibly) puts an element into a new sequence.
+</li>
+
+<li>Transducers separate the <b>does something</b> from the <b>takes an
+element&#x2026;puts an element</b>.
+</li>
+</ul>
+</section>
+</section>
+<section>
+<section id="sec-5" >
+
+<h2>Why transducers?</h2>
+<ul class="org-ul">
+<li>Avoid repeating similar implementations in different contexts.
+</li>
+
+<li>Clojure found that they were reimplementing map-like functionality
+for sequences, channels, async, etc.
+</li>
+</ul>
+</section>
+</section>
+<section>
+<section id="sec-6" >
+
+<h2>Why transducers?</h2>
+<ul class="org-ul">
+<li>Transducers avoid temporary intermediate sequences (or contexts) by
+composing the transformations seamlessly.
+</li>
+</ul>
+</section>
+</section>
+<section>
+<section id="sec-7" >
+
+<h2>Why transducers in Python?</h2>
+<img src="images/jackiechan.jpg" alt="jackiechan.jpg" />
+
+<p>
+Potentially useful&#x2026;
+</p>
+
+<p>
+&#x2026;but, more importantly, very interesting!
+</p>
+</section>
+</section>
+<section>
+<section id="sec-8" >
+
+<h2>Example in Python</h2>
+<div class="org-src-container">
+
+<pre  class="src src-python">In [78]: <span style="color: #fcaf3e;">t</span> = compose(
+   ....:     filtering(<span style="color: #b4fa70;">lambda</span> x: <span style="color: #ad7fa8;">len</span>(x) &gt; 3),
+   ....:     mapping(<span style="color: #b4fa70;">lambda</span> x: x.lower()))
+
+In [82]: <span style="color: #ad7fa8;">reduce</span>(t(<span style="color: #b4fa70;">lambda</span> r, n: <span style="color: #e9b96e;">''</span>.join([r, n])),
+   ....:        <span style="color: #e9b96e;">"The Quick Brown Fox Jumped Over The Lazy Dog"</span>.split(), <span style="color: #e9b96e;">""</span>)
+Out[82]: <span style="color: #e9b96e;">'quickbrownjumpedoverlazy'</span>
+</pre>
+</div>
+</section>
+</section>
+<section>
+<section id="sec-9" >
+
+<h2>Implementing map() and filter() with transducers</h2>
+<div class="org-src-container">
+
+<pre  class="src src-python"><span style="color: #b4fa70;">def</span> <span style="color: #fce94f;">conj</span>(l, x):
+    l.append(x)
+    <span style="color: #b4fa70;">return</span> l
+
+<span style="color: #b4fa70;">def</span> <span style="color: #fce94f;">map</span>(func, seq):
+    <span style="color: #b4fa70;">return</span> <span style="color: #ad7fa8;">reduce</span>(mapping(func)(conj), seq, [])
+
+<span style="color: #b4fa70;">def</span> <span style="color: #fce94f;">filter</span>(pred, seq):
+    <span style="color: #b4fa70;">return</span> <span style="color: #ad7fa8;">reduce</span>(filtering(pred)(conj), seq, [])
+
+<span style="color: #b4fa70;">def</span> <span style="color: #fce94f;">mapcat</span>(func, seq):
+    <span style="color: #b4fa70;">return</span> <span style="color: #ad7fa8;">reduce</span>(mapcatting(func)(conj), seq, [])
+</pre>
+</div>
+</section>
+</section>
+<section>
+<section id="sec-10" >
+
+<h2>Implementation of compose</h2>
+<div class="org-src-container">
+
+<pre  class="src src-python"><span style="color: #b4fa70;">def</span> <span style="color: #fce94f;">compose</span>(c1, *composables):
+    <span style="color: #b4fa70;">def</span> <span style="color: #fce94f;">composite</span>(terminus):
+        <span style="color: #b4fa70;">return</span> <span style="color: #ad7fa8;">reduce</span>(<span style="color: #b4fa70;">lambda</span> r, n: n(r),
+                      chain([c1], composables),
+                      terminus)
+    <span style="color: #b4fa70;">return</span> composite
+</pre>
+</div>
+</section>
+</section>
+<section>
+<section id="sec-11" >
+
+<h2>Implementations</h2>
+<p>
+Currently working on two versions:
+</p>
+
+<ul class="org-ul">
+<li>A coroutines-based version: <a href="https://github.com/abingham/python-transducers">https://github.com/abingham/python-transducers</a>
+</li>
+
+<li>A more fully-featured class-based version: TODO
+</li>
+</ul>
+</section>
+</section>
+<section>
+<section id="sec-12" >
+
+<h2>Want to know more?</h2>
+<ul class="org-ul">
+<li>"Transducers are coming" blog post - <a href="http://blog.cognitect.com/blog/2014/8/6/transducers-are-coming">http://blog.cognitect.com/blog/2014/8/6/transducers-are-coming</a>
+</li>
+<li>Clojure documentation - <a href="http://clojure.org/transducers">http://clojure.org/transducers</a>
+</li>
+<li>Rich Hickey's Strangeloop talk - <a href="https://www.youtube.com/watch?v=6mTbuzafcII">https://www.youtube.com/watch?v=6mTbuzafcII</a>
+</li>
+</ul>
+</section>
+</section>
+<section>
+<section id="sec-13"  data-background="./images/closer.png" data-background-transition="slide">
+
+<h2></h2>
+</section>
+</section>
+</div>
+</div>
+<script src="./reveal.js/lib/js/head.min.js"></script>
+<script src="./reveal.js/js/reveal.min.js"></script>
+<script>
+
+                        // Full list of configuration options available here:
+                        // https://github.com/hakimel/reveal.js#configuration
+                        Reveal.initialize({
+                                controls: true,
+                                progress: true,
+                                history: false,
+                                center: true,
+                                slideNumber: true,
+                                rollingLinks: false,
+                                keyboard: true,
+                                overview: true,
+                                 // slide width
+                                 // slide height
+                                 // slide margin
+                                 // slide minimum scaling factor
+                                 // slide maximum scaling factor
+
+
+                                theme: Reveal.getQueryHash().theme, // available themes are in /css/theme
+                                transition: Reveal.getQueryHash().transition || 'default', // default/cube/page/concave/zoom/linear/fade/none
+                                transitionSpeed: 'default',
+
+                                // Optional libraries used to extend on reveal.js
+                                dependencies: [
+                                        { src: './reveal.js/lib/js/classList.js', condition: function() { return !document.body.classList; } }
+                                        ,{ src: './reveal.js/plugin/markdown/showdown.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } }
+                                        ,{ src: './reveal.js/plugin/markdown/markdown.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } }
+                                        ,{ src: './reveal.js/plugin/highlight/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } }
+                                        ,{ src: './reveal.js/plugin/zoom-js/zoom.js', async: true, condition: function() { return !!document.body.classList; } }
+                                        ,{ src: './reveal.js/plugin/notes/notes.js', async: true, condition: function() { return !!document.body.classList; } }
+                                        // { src: './reveal.js/plugin/search/search.js', async: true, condition: function() { return !!document.body.classList; } }
+                                        // { src: './reveal.js/plugin/remotes/remotes.js', async: true, condition: function() { return !!document.body.classList; } }
+
+                                ]
+                        });
+</script>
+</body>
+</html>

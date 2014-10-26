@@ -1,0 +1,116 @@
+#+STARTUP: showall
+#+REVEAL_THEME: blood
+#+REVEAL_TITLE_SLIDE_TEMPLATE: <h2>Transducers for Python</h2><p><p>Austin Bingham<p><p>Sixty North AS<p>
+#+REVEAL_EXTRA_CSS: ./reveal.js/css/theme/sixty_north_mixin.css
+#+OPTIONS: num:nil, toc:nil
+
+* What is a transducer?
+file:images/rich-hickey.jpg
+
+* What is a transducer?
+"Transducers are *composable algorithmic transformations*. They are
+independent from the context of their input and output sources and
+*specify only the essence of the transformation* in terms of an
+individual element... *Transducers compose directly*, without awareness
+of input or creation of intermediate aggregates."
+
+ -- Clojure documentation
+
+* What is a transducer?
+
+*TRANSforming reDUCER*
+
+- A composable transformation step that can be used to produce a
+  reducing function from another reducing function.
+
+- Decouples the *context* of a transformation from the transformation
+  itself.
+
+* Consider Python's map() and filter()
+
+- Each takes an element from a sequence, does something, and
+  (possibly) puts an element into a new sequence.
+
+- Transducers separate the *does something* from the *takes an
+  element...puts an element*.
+
+* Why transducers?
+
+- Avoid repeating similar implementations in different contexts.
+
+- Clojure found that they were reimplementing map-like functionality
+  for sequences, channels, async, etc.
+
+* Why transducers?
+
+- Transducers avoid temporary intermediate sequences (or contexts) by
+  composing the transformations seamlessly.
+
+* Why transducers in Python?
+
+file:images/jackiechan.jpg
+
+Potentially useful...
+
+...but, more importantly, very interesting!
+
+* Example in Python
+
+#+BEGIN_SRC python
+In [78]: t = compose(
+   ....:     filtering(lambda x: len(x) > 3),
+   ....:     mapping(lambda x: x.lower()))
+
+In [82]: reduce(t(lambda r, n: ''.join([r, n])),
+   ....:        "The Quick Brown Fox Jumped Over The Lazy Dog".split(), "")
+Out[82]: 'quickbrownjumpedoverlazy'
+#+END_SRC
+
+* Implementing map() and filter() with transducers
+
+#+BEGIN_SRC python
+def conj(l, x):
+    l.append(x)
+    return l
+
+def map(func, seq):
+    return reduce(mapping(func)(conj), seq, [])
+
+def filter(pred, seq):
+    return reduce(filtering(pred)(conj), seq, [])
+
+def mapcat(func, seq):
+    return reduce(mapcatting(func)(conj), seq, [])
+#+END_SRC
+
+* Implementation of compose
+
+#+BEGIN_SRC python
+def compose(c1, *composables):
+    def composite(terminus):
+        return reduce(lambda r, n: n(r),
+                      chain([c1], composables),
+                      terminus)
+    return composite
+#+END_SRC
+
+* Implementations
+
+Currently working on two versions:
+
+- An experimental coroutines-based version: https://github.com/abingham/python-transducers
+
+- A more fully-featured class-based version: http://code.sixty-north.com/python-transducers
+
+* Want to know more?
+
+ - "Transducers are coming" blog post - http://blog.cognitect.com/blog/2014/8/6/transducers-are-coming
+ - Clojure documentation - http://clojure.org/transducers
+ - Rich Hickey's Strangeloop talk - https://www.youtube.com/watch?v=6mTbuzafcII
+
+*
+
+    :PROPERTIES:
+    :reveal_background: ./images/closer.png
+    :reveal_background_trans: slide
+    :END:
